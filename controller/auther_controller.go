@@ -10,6 +10,7 @@ import (
 	"github.com/ayeshdon87/LeveinAPI/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -53,11 +54,39 @@ func AddAuther() gin.HandlerFunc {
 		}
 		defer cancel()
 
-		var signUpSuccess models.AutherCreateSuccess
+		var authorCreateSuccess models.AutherCreateSuccess
 		successMsg := utils.AUTHER_ADD_SUCCESS
-		signUpSuccess.Id = &tempuserId
-		signUpSuccess.Success = utils.BoolAddr(true)
-		signUpSuccess.Message = &successMsg
-		c.JSON(http.StatusCreated, signUpSuccess)
+		authorCreateSuccess.Id = &tempuserId
+		authorCreateSuccess.Success = utils.BoolAddr(true)
+		authorCreateSuccess.Message = &successMsg
+		c.JSON(http.StatusCreated, authorCreateSuccess)
+	}
+}
+
+func GetAuther() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		id := c.Param("id")
+		//log.Panicln(`ID--> %s `, id)
+
+		var foundAuthor models.Auther
+		var responseData models.GetAuthor
+		//var responseUser models.IsUserAvailableResponse
+		authorCollection.FindOne(ctx, bson.M{"userid": id}).Decode(&foundAuthor)
+		defer cancel()
+
+		if foundAuthor.UserId != nil {
+			responseData.Success = utils.BoolAddr(true)
+			responseData.Author = &foundAuthor
+		} else {
+			errorMsg := utils.AUTHOR_NOT_FOUND
+			responseData.Success = utils.BoolAddr(false)
+			responseData.Message = &errorMsg
+			responseData.Author = nil
+
+		}
+
+		c.JSON(http.StatusCreated, responseData)
+
 	}
 }
