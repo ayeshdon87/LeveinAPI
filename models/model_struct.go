@@ -26,3 +26,9 @@ type GetAuthor struct {
 	Success *bool   `json:"success"`
 	Author  *Auther `json:"auther"`
 }
+
+type GetAllAuthor struct {
+	CurrentPage *int      `json:"current_page"`
+	NextPage    *int      `json:"next_page"`
+	Author      *[]Auther `json:"auther"`
+}
