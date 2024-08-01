@@ -65,3 +65,9 @@ type GetBook struct {
 	Success *bool         `json:"success"`
 	Book    *BookResponse `json:"book"`
 }
+
+type GetAllBooks struct {
+	CurrentPage *int            `json:"current_page"`
+	NextPage    *int            `json:"next_page"`
+	Author      *[]BookResponse `json:"auther"`
+}

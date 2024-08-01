@@ -2,7 +2,9 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ayeshdon87/LeveinAPI/database"
@@ -12,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // var bookValidate = validator.New()
@@ -99,7 +102,7 @@ func GetBook() gin.HandlerFunc {
 		if foundBook.BookId != nil {
 			var foundAuthor models.Auther
 
-			authorCollection.FindOne(ctx, bson.M{"userid": foundBook.AuthorId}).Decode(&foundAuthor)
+			authorCollection.FindOne(ctx, bson.M{"authorid": foundBook.AuthorId}).Decode(&foundAuthor)
 			var responseBook models.BookResponse
 			responseBook.BookId = foundBook.AuthorId
 			responseBook.CreatedAt = foundBook.CreatedAt
@@ -110,15 +113,83 @@ func GetBook() gin.HandlerFunc {
 
 			responseData.Success = utils.BoolAddr(true)
 			responseData.Book = &responseBook
+			c.JSON(http.StatusOK, responseData)
 		} else {
 			errorMsg := utils.BOOK_NOT_FOUND
 			responseData.Success = utils.BoolAddr(false)
 			responseData.Message = &errorMsg
 			responseData.Book = nil
+			c.JSON(http.StatusOK, responseData)
 
 		}
 
-		c.JSON(http.StatusOK, responseData)
+	}
+}
 
+func GetAllBooks() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+
+		page, err := strconv.Atoi(c.Param("page"))
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
+			defer cancel()
+			return
+		}
+
+		skip := (page - 1) * utils.MAX_PAGE_LIMIT
+		findOptions := options.Find()
+		findOptions.SetLimit(int64(utils.MAX_PAGE_LIMIT))
+		findOptions.SetSkip(int64(skip))
+
+		cursor, err := bookCollection.Find(ctx, bson.M{}, findOptions)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
+			defer cancel()
+			return
+		}
+		defer cancel()
+		defer cursor.Close(ctx)
+		var books []models.BookResponse
+		var allList models.GetAllBooks
+
+		for cursor.Next(ctx) {
+			var book models.Book
+			if err := cursor.Decode(&book); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
+				defer cancel()
+				return
+			}
+
+			var foundAuthor models.Auther
+			fmt.Println("BOOK ID : %s", *book.AuthorId)
+
+			authorCollection.FindOne(ctx, bson.M{"userid": *book.AuthorId}).Decode(&foundAuthor)
+
+			// fmt.Println("BOOK ID : %s", *book.AuthorId)
+
+			var responseBook models.BookResponse
+			responseBook.BookId = book.BookId
+			responseBook.CreatedAt = book.CreatedAt
+			responseBook.ID = book.ID
+			responseBook.ISBN = book.ISBN
+			responseBook.Name = book.Name
+			responseBook.Auther = &foundAuthor
+
+			books = append(books, responseBook)
+		}
+
+		if err := cursor.Err(); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
+			defer cancel()
+			return
+		}
+		allList.Author = &books
+		allList.CurrentPage = &page
+		nextPage := page + 1
+		allList.NextPage = &nextPage
+		c.JSON(http.StatusOK, allList)
 	}
 }
