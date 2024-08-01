@@ -32,3 +32,36 @@ type GetAllAuthor struct {
 	NextPage    *int      `json:"next_page"`
 	Author      *[]Auther `json:"auther"`
 }
+
+type AutherUpdate struct {
+	FirstName *string   `json:"first_name" validate:"required"`
+	LastName  *string   `json:"last_name" validate:"required"`
+	UpdatedAt time.Time `json:"updated_at"`
+	UserId    *string   `json:"user_id"`
+}
+
+type Book struct {
+	ID        primitive.ObjectID `bson:"_id"`
+	Name      *string            `json:"name" validate:"required"`
+	ISBN      *string            `json:"isbn" validate:"required"`
+	AuthorId  *string            `json:"author_id" validate:"required"`
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
+	BookId    *string            `json:"book_id"`
+}
+
+type BookResponse struct {
+	ID        primitive.ObjectID `bson:"_id"`
+	Name      *string            `json:"name" validate:"required"`
+	ISBN      *string            `json:"isbn" validate:"required"`
+	Auther    *Auther            `json:"author"`
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
+	BookId    *string            `json:"book_id"`
+}
+
+type GetBook struct {
+	Message *string       `json:"message"`
+	Success *bool         `json:"success"`
+	Book    *BookResponse `json:"book"`
+}
