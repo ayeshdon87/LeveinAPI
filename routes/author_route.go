@@ -27,10 +27,10 @@ func BookRoutes(incomingRoutes *gin.Engine) {
 		controller.AddBook())
 
 	incomingRoutes.GET(utils.V1_API_BASE_URL+"book/:id",
-		controller.GetAuther())
+		controller.GetBook())
 
-	// incomingRoutes.GET(utils.V1_API_BASE_URL+"authors/:page",
-	// 	controller.GetAllAuthers())
+	incomingRoutes.GET(utils.V1_API_BASE_URL+"books/:page",
+		controller.GetAllBooks())
 
 	// incomingRoutes.PUT(utils.V1_API_BASE_URL+"author/update",
 	// 	controller.UpdateAuther())
