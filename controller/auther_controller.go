@@ -143,3 +143,70 @@ func GetAllAuthers() gin.HandlerFunc {
 		c.JSON(http.StatusOK, allList)
 	}
 }
+
+func UpdateAuther() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+
+		var autherModl models.AutherUpdate
+
+		err := c.BindJSON(&autherModl)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			defer cancel()
+			return
+		}
+		//validate request format
+		validationError := validate.Struct(autherModl)
+		if validationError != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
+			defer cancel()
+			return
+		}
+		autherModl.UpdatedAt, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			defer cancel()
+			return
+		}
+
+		var updateObj primitive.D
+		updateObj = append(updateObj, bson.E{Key: "firstname", Value: *autherModl.FirstName})
+		updateObj = append(updateObj, bson.E{Key: "lastname", Value: *autherModl.LastName})
+		UpdatedAt, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		updateObj = append(updateObj, bson.E{Key: "updatedat", Value: UpdatedAt})
+		upsert := true
+		objID, err := primitive.ObjectIDFromHex(*autherModl.UserId)
+		filter := bson.M{"_id": objID}
+
+		opt := options.UpdateOptions{
+			Upsert: &upsert,
+		}
+
+		result, updateError := authorCollection.UpdateOne(ctx, filter, bson.D{
+			{Key: "$set", Value: updateObj},
+		},
+			&opt)
+
+		if updateError != nil {
+			msg := utils.ERROR_IN_AUTHER_CREATION
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		}
+		defer cancel()
+		var authorCreateSuccess models.AutherCreateSuccess
+
+		if result.MatchedCount == 0 {
+			successMsg := utils.AUTHOR_NOT_FOUND
+			authorCreateSuccess.Success = utils.BoolAddr(false)
+			authorCreateSuccess.Message = &successMsg
+		} else {
+			successMsg := utils.AUTHER_UPDATE_SUCCESS
+			authorCreateSuccess.Success = utils.BoolAddr(true)
+			authorCreateSuccess.Message = &successMsg
+		}
+
+		c.JSON(http.StatusCreated, authorCreateSuccess)
+	}
+}

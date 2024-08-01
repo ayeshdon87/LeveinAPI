@@ -20,6 +20,7 @@ func main() {
 
 	log.Println("CALL SERVER")
 	routes.AuthRoutes(router)
+	routes.BookRoutes(router)
 
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"success": "Welcome to API Service v1.0"})
