@@ -71,3 +71,11 @@ type GetAllBooks struct {
 	NextPage    *int            `json:"next_page"`
 	Author      *[]BookResponse `json:"auther"`
 }
+
+type BookUpdate struct {
+	Name      *string   `json:"name" validate:"required"`
+	ISBN      *string   `json:"isbn" validate:"required"`
+	AuthorId  *string   `json:"author_id" validate:"required"`
+	UpdatedAt time.Time `json:"updated_at"`
+	BookId    *string   `json:"book_id"`
+}

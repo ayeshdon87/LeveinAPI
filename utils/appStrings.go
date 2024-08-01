@@ -12,5 +12,6 @@ const (
 	BOOK_ADD_SUCCESS         = "Successfully Add Book"
 	BOOK_NOT_FOUND           = "Book Not Found"
 	ERROR_IN_BOOK_CREATION   = "Error in book creation"
+	BOOK_UPDATE_SUCCESS      = "Successfully Update Book"
 	TEMP_ID                  = 1
 )

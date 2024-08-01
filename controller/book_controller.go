@@ -193,3 +193,71 @@ func GetAllBooks() gin.HandlerFunc {
 		c.JSON(http.StatusOK, allList)
 	}
 }
+
+func UpdateBook() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+
+		var bookModl models.BookUpdate
+
+		err := c.BindJSON(&bookModl)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			defer cancel()
+			return
+		}
+		//validate request format
+		validationError := validate.Struct(bookModl)
+		if validationError != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
+			defer cancel()
+			return
+		}
+		bookModl.UpdatedAt, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			defer cancel()
+			return
+		}
+
+		var updateObj primitive.D
+		updateObj = append(updateObj, bson.E{Key: "name", Value: *bookModl.Name})
+		updateObj = append(updateObj, bson.E{Key: "isbn", Value: *bookModl.ISBN})
+		updateObj = append(updateObj, bson.E{Key: "authorid", Value: *bookModl.AuthorId})
+		UpdatedAt, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		updateObj = append(updateObj, bson.E{Key: "updatedat", Value: UpdatedAt})
+		upsert := true
+		objID, err := primitive.ObjectIDFromHex(*bookModl.BookId)
+		filter := bson.M{"_id": objID}
+
+		opt := options.UpdateOptions{
+			Upsert: &upsert,
+		}
+
+		result, updateError := bookCollection.UpdateOne(ctx, filter, bson.D{
+			{Key: "$set", Value: updateObj},
+		},
+			&opt)
+
+		if updateError != nil {
+			msg := utils.ERROR_IN_BOOK_CREATION
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		}
+		defer cancel()
+		var authorCreateSuccess models.AutherCreateSuccess
+
+		if result.MatchedCount == 0 {
+			successMsg := utils.BOOK_NOT_FOUND
+			authorCreateSuccess.Success = utils.BoolAddr(false)
+			authorCreateSuccess.Message = &successMsg
+		} else {
+			successMsg := utils.BOOK_UPDATE_SUCCESS
+			authorCreateSuccess.Success = utils.BoolAddr(true)
+			authorCreateSuccess.Message = &successMsg
+		}
+
+		c.JSON(http.StatusCreated, authorCreateSuccess)
+	}
+}
