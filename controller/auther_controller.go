@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/ayeshdon87/LeveinAPI/database"
@@ -96,20 +95,7 @@ func GetAllAuthers() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
-		page, err := strconv.Atoi(c.Param("page"))
-
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
-			defer cancel()
-			return
-		}
-
-		skip := (page - 1) * utils.MAX_PAGE_LIMIT
-		findOptions := options.Find()
-		findOptions.SetLimit(int64(utils.MAX_PAGE_LIMIT))
-		findOptions.SetSkip(int64(skip))
-
-		cursor, err := authorCollection.Find(ctx, bson.M{}, findOptions)
+		cursor, err := authorCollection.Find(ctx, bson.M{})
 
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
@@ -119,7 +105,6 @@ func GetAllAuthers() gin.HandlerFunc {
 		defer cancel()
 		defer cursor.Close(ctx)
 		var authers []models.Auther
-		var allList models.GetAllAuthor
 
 		for cursor.Next(ctx) {
 			var auther models.Auther
@@ -136,11 +121,7 @@ func GetAllAuthers() gin.HandlerFunc {
 			defer cancel()
 			return
 		}
-		allList.Author = &authers
-		allList.CurrentPage = &page
-		nextPage := page + 1
-		allList.NextPage = &nextPage
-		c.JSON(http.StatusOK, allList)
+		c.JSON(http.StatusOK, authers)
 	}
 }
 
