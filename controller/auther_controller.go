@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ayeshdon87/LeveinAPI/database"
@@ -13,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var validate = validator.New()
@@ -67,11 +69,10 @@ func GetAuther() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		id := c.Param("id")
-		//log.Panicln(`ID--> %s `, id)
 
 		var foundAuthor models.Auther
 		var responseData models.GetAuthor
-		//var responseUser models.IsUserAvailableResponse
+
 		authorCollection.FindOne(ctx, bson.M{"userid": id}).Decode(&foundAuthor)
 		defer cancel()
 
@@ -86,7 +87,59 @@ func GetAuther() gin.HandlerFunc {
 
 		}
 
-		c.JSON(http.StatusCreated, responseData)
+		c.JSON(http.StatusOK, responseData)
 
+	}
+}
+
+func GetAllAuthers() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+
+		page, err := strconv.Atoi(c.Param("page"))
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
+			defer cancel()
+			return
+		}
+
+		skip := (page - 1) * utils.MAX_PAGE_LIMIT
+		findOptions := options.Find()
+		findOptions.SetLimit(int64(utils.MAX_PAGE_LIMIT))
+		findOptions.SetSkip(int64(skip))
+
+		cursor, err := authorCollection.Find(ctx, bson.M{}, findOptions)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
+			defer cancel()
+			return
+		}
+		defer cancel()
+		defer cursor.Close(ctx)
+		var authers []models.Auther
+		var allList models.GetAllAuthor
+
+		for cursor.Next(ctx) {
+			var auther models.Auther
+			if err := cursor.Decode(&auther); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
+				defer cancel()
+				return
+			}
+			authers = append(authers, auther)
+		}
+
+		if err := cursor.Err(); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": utils.INVALID_RQUEST})
+			defer cancel()
+			return
+		}
+		allList.Author = &authers
+		allList.CurrentPage = &page
+		nextPage := page + 1
+		allList.NextPage = &nextPage
+		c.JSON(http.StatusOK, allList)
 	}
 }
