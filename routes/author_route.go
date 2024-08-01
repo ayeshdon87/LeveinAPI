@@ -14,7 +14,7 @@ func AuthRoutes(incomingRoutes *gin.Engine) {
 	incomingRoutes.GET(utils.V1_API_BASE_URL+"author/:id",
 		controller.GetAuther())
 
-	incomingRoutes.GET(utils.V1_API_BASE_URL+"authors/:page",
+	incomingRoutes.GET(utils.V1_API_BASE_URL+"authors",
 		controller.GetAllAuthers())
 
 	incomingRoutes.PUT(utils.V1_API_BASE_URL+"author/update",
